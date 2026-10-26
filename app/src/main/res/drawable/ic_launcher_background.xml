@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://android.com"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Deep Space Gradient Background -->
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="54"
+                android:startY="0"
+                android:endX="54"
+                android:endY="108"
+                android:type="linear">
+                <item android:offset="0" android:color="#0D1B2A"/>
+                <item android:offset="0.5" android:color="#1B263B"/>
+                <item android:offset="1" android:color="#0D1B2A"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Star 1 (Top Left) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,15L21,18L24,19L21,20L20,23L19,20L16,19L19,18Z" />
+
+    <!-- Star 2 (Top Right Tiny) -->
+    <path
+        android:fillColor="#E0AA3E"
+        android:pathData="M85,22L85.5,23.5L87,24L85.5,24.5L85,26L84.5,24.5L83,24L84.5,23.5Z" />
+
+    <!-- Star 3 (Mid Right) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M100,48L101,51L104,52L101,53L100,56L99,53L96,52L99,51Z" />
+
+    <!-- Star 4 (Bottom Left) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,75L17,78L20,79L17,80L16,83L15,80L12,79L15,78Z" />
+
+    <!-- Star 5 (Bottom Right Tiny) -->
+    <path
+        android:fillColor="#E0AA3E"
+        android:pathData="M80,88L80.5,89.5L82,90L80.5,90.5L80,92L79.5,90.5L78,90L79.5,89.5Z" />
+
+    <!-- Star 6 (Top Center Tiny) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M52,8L52.5,9.5L54,10L52.5,10.5L52,12L51.5,10.5L50,10L51.5,9.5Z" />
+</vector>
