@@ -10,8 +10,6 @@ import android.content.Intent
 import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
-    private val noiseGenerator = StaticNoiseGenerator()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

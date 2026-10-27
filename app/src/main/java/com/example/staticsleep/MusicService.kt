@@ -10,8 +10,8 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 
 class MusicService : Service() {
+    private val brownNoiseGenerator = BrownNoiseGenerator()
 
-    private val noiseGenerator = StaticNoiseGenerator()
     private val channelID = "MusicServiceChannel"
     private val notificationID = 1
 
@@ -28,7 +28,7 @@ class MusicService : Service() {
         startForeground(notificationID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
 
         // Start playback if it's not already playing
-        noiseGenerator.startStaticNoise()
+        brownNoiseGenerator.start()
 
         // System will recreate the service if it gets killed
         return START_STICKY
@@ -36,7 +36,7 @@ class MusicService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        noiseGenerator.stopStaticNoise()
+        brownNoiseGenerator.stop()
     }
 
     override fun onBind(intent: Intent?): IBinder? {
