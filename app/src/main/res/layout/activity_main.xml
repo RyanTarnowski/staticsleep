@@ -12,7 +12,8 @@
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Static Sleep"
+        android:text="@string/static_sleep"
+        android:textColor="#616161"
         android:textColorLink="#FFFFFF"
         android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -25,15 +26,16 @@
         android:id="@+id/toggleButton"
         android:layout_width="274dp"
         android:layout_height="65dp"
-        android:text="ToggleButton"
+        android:background="@drawable/toggle_button_background"
+        android:soundEffectsEnabled="false"
+        android:text="@string/toggle_button"
+        android:textColor="#78909C"
         android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+
         app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-
-        android:background="@drawable/toggle_button_background"
-        android:soundEffectsEnabled="false" />
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

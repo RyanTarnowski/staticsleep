@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">StaticSleep</string>
+    <string name="static_sleep">Static Sleep</string>
+    <string name="toggle_button">ToggleButton</string>
 </resources>
