@@ -10,8 +10,8 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 
 class MusicService : Service() {
-    private val brownNoiseGenerator = BrownNoiseGenerator()
-
+    // Safe Initialization using 'by lazy'
+    private val brownNoiseGenerator by lazy { BrownNoiseGenerator(this) }
     private val channelID = "MusicServiceChannel"
     private val notificationID = 1
 

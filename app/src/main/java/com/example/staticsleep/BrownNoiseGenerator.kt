@@ -1,16 +1,69 @@
 package com.example.staticsleep
 
+import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.media.AudioManager
+import android.media.AudioFocusRequest
 
-class BrownNoiseGenerator {
+class BrownNoiseGenerator(context: Context) {
     private var audioTrack: AudioTrack? = null
     private var isPlaying = false
+    private var wasInterrupted = false
     private var audioThread: Thread? = null
+    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private var focusRequest: AudioFocusRequest? = null
+    private val random = java.util.Random()
+
+    // This listener triggers whenever an alarm, phone call, or video takes focus
+    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        when (focusChange) {
+            // The alarm rings: pause the engine but DO NOT abandon focus yet
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                if (isPlaying) {
+                    wasInterrupted = true
+                    pausePlaybackOnly() // Clear the thread/track without destroying the focus slot
+                }
+            }
+
+            // Another app took over permanently (e.g. user started Spotify or a YouTube video)
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                wasInterrupted = false
+                stop() // Full cleanup
+            }
+
+            // The alarm is dismissed: if we were interrupted, wake back up!
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                if (wasInterrupted) {
+                    wasInterrupted = false
+                    start()
+                }
+            }
+        }
+    }
 
     fun start() {
         if (isPlaying) return
+
+        // Request Audio Focus before starting the stream
+        val playbackAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build()
+
+            focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(playbackAttributes)
+                .setAcceptsDelayedFocusGain(true)
+                .setOnAudioFocusChangeListener(audioFocusChangeListener)
+                .build()
+
+        val focusGranted = audioManager.requestAudioFocus(focusRequest!!) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+
+        // Only play if the system says it's okay
+        if (!focusGranted) return
+
         isPlaying = true
 
         // Initialize AudioTrack based on Android Version
@@ -42,60 +95,83 @@ class BrownNoiseGenerator {
 
         // Run the synthesis on a background thread to prevent UI stutter
         audioThread = Thread {
+            // Elevate thread priority immediately so the OS doesn't starve the audio stream
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO)
+
             // Adjust buffer size per write iteration
             val buffer = ShortArray(4096)
 
             // Accumulator for Brown Noise filter
             var currentValue = 0.0f
 
+            // Pre-declare primitive loop variables to avoid any stack allocation pressure
+            var white: Float
+            var sample: Float
+
             while (isPlaying) {
                 for (i in buffer.indices) {
-                    // 1. Generate White Noise (-1.0 to 1.0)
-                    val white = (Math.random() * 2.0 - 1.0).toFloat()
+                    // Fast, allocation-free white noise generation
+                    white = random.nextFloat() * 2.0f - 1.0f
 
-                    // 2. Filter it to Brown Noise (Brownian motion / random walk)
-                    // Dropping the coefficient from 0.02f to 0.008f heavily dampens the treble/hiss.
+                    // Brown noise leaky filter
                     currentValue = (currentValue + (0.008f * white)) / 1.008f
 
-                    // 3. Post-Filter Boost:
-                    // Because low-pass filtering heavily reduces volume, we boost the low-end.
-                    val volumeAdjustment = 7.5f // Brings up the bass volume safely
-                    var sample = currentValue * volumeAdjustment
-
-                    // 4. Hard-clamp to prevent digital distortion overflow
+                    // Boost & Hard-clamp
+                    sample = currentValue * 7.5f
                     if (sample > 1.0f) sample = 1.0f
-                    if (sample < -1.0f) sample = -1.0f
+                    else if (sample < -1.0f) sample = -1.0f
 
-                    // 5. Convert float to 16-bit Signed Short PCM data
-                    buffer[i] = (sample * 32767).toInt().toShort()
+                    // Convert to 16-bit PCM Short
+                    buffer[i] = (sample * 32767f).toInt().toShort()
                 }
 
-                // Write data to the audio hardware stream
-                if (audioTrack != null && isPlaying) {
-                    audioTrack!!.write(buffer, 0, buffer.size)
+                // Non-blocking check and write
+                val track = audioTrack
+                if (track != null && isPlaying && track.playState == AudioTrack.PLAYSTATE_PLAYING) {
+                    track.write(buffer, 0, buffer.size)
                 }
             }
+        }.apply {
+            name = "BrownNoiseAudioThread"
         }
 
         audioThread!!.start()
     }
 
-    fun stop() {
+    private fun pausePlaybackOnly() {
         isPlaying = false
-        if (audioThread != null) {
+
+        // Flush the audio track buffer to unblock the thread loop instantly
+        audioTrack?.let { track ->
             try {
-                audioThread!!.join() // Wait for thread to finish loops safely
-            } catch (e: InterruptedException) {
-                e.printStackTrace()
-            }
+                if (track.state == AudioTrack.STATE_INITIALIZED) {
+                    track.stop()
+                    track.flush()
+                }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+
+        // Safely tear down the thread
+        audioThread?.let { thread ->
+            try { thread.join(200) } catch (e: InterruptedException) { e.printStackTrace() }
             audioThread = null
         }
 
-        if (audioTrack != null) {
-            audioTrack!!.stop()
-            audioTrack!!.release()
+        // Tear down track hardware so it doesn't hold system memory resources open
+        audioTrack?.let { track ->
+            try { if (track.state == AudioTrack.STATE_INITIALIZED) track.release() } catch (e: Exception) { e.printStackTrace() }
             audioTrack = null
         }
+    }
+
+    fun stop() {
+        wasInterrupted = false // Make sure an explicit user stop resets this flag
+
+        // Use our helper to cleanly dismantle the audio path
+        pausePlaybackOnly()
+
+        // Abandon Audio Focus completely since the user explicitly wanted out
+        focusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
     }
 
     companion object {
